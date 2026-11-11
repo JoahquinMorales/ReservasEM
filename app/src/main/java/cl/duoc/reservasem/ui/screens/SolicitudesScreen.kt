@@ -4,11 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import cl.duoc.reservasem.model.Validadores
+import cl.duoc.reservasem.ui.components.CampoTextoTactico
 import cl.duoc.reservasem.ui.components.ScaffoldSecundario
 import cl.duoc.reservasem.ui.components.agendarEnGoogleCalendar
 import cl.duoc.reservasem.viewmodel.AdminViewModel
@@ -22,6 +26,7 @@ fun SolicitudesScreen(
     val reservas by viewModel.reservas.collectAsState()
     var filtro by remember { mutableStateOf("TODAS") }
     var motivoRechazo by remember { mutableStateOf("") }
+    var errorMotivoRechazo by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
     val filtradas = reservas.filter { filtro == "TODAS" || it.estado == filtro }
@@ -51,13 +56,16 @@ fun SolicitudesScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = motivoRechazo,
-                onValueChange = { motivoRechazo = it },
-                label = { Text("Observación / Motivo de rechazo (opcional)", style = MaterialTheme.typography.bodySmall) },
-                singleLine = true,
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.fillMaxWidth()
+            CampoTextoTactico(
+                valor = motivoRechazo,
+                onValorChange = { texto ->
+                    motivoRechazo = texto
+                    errorMotivoRechazo = if (texto.isNotBlank()) Validadores.validarMotivoRechazo(texto) else null
+                },
+                etiqueta = "Observación / Motivo de rechazo (mín. 5 caracteres al rechazar)",
+                icono = Icons.Default.Gavel,
+                errorMensaje = errorMotivoRechazo,
+                textoAyudaValido = "Motivo de rechazo válido para aplicar"
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -71,8 +79,14 @@ fun SolicitudesScreen(
                         reserva = reserva,
                         onAprobar = { viewModel.aprobarReserva(reserva) },
                         onRechazar = {
-                            viewModel.rechazarReserva(reserva, motivoRechazo)
-                            motivoRechazo = ""
+                            val error = Validadores.validarMotivoRechazo(motivoRechazo)
+                            if (error != null) {
+                                errorMotivoRechazo = error
+                            } else {
+                                viewModel.rechazarReserva(reserva, motivoRechazo)
+                                motivoRechazo = ""
+                                errorMotivoRechazo = null
+                            }
                         },
                         onSincronizarCalendar = {
                             agendarEnGoogleCalendar(context, reserva, esAdmin = true)

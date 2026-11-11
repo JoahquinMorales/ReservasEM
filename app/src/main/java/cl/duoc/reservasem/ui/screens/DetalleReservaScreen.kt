@@ -2,7 +2,9 @@ package cl.duoc.reservasem.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EditCalendar
@@ -15,7 +17,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duoc.reservasem.ui.components.BadgeEstado
+import cl.duoc.reservasem.ui.components.EncabezadoSeccionTactico
 import cl.duoc.reservasem.ui.components.ScaffoldSecundario
+import cl.duoc.reservasem.ui.components.TarjetaCredencialTemporalRecinto
 import cl.duoc.reservasem.ui.components.agendarEnGoogleCalendar
 import cl.duoc.reservasem.ui.theme.MilitaryGoldGalon
 import cl.duoc.reservasem.viewmodel.CadeteViewModel
@@ -33,7 +37,7 @@ fun DetalleReservaScreen(
     val context = LocalContext.current
 
     ScaffoldSecundario(
-        titulo = "Ficha Oficial de Reserva",
+        titulo = "Ficha y Credencial Temporal",
         subtitulo = "Folio #${reserva?.id ?: reservaId}",
         onVolver = onVolver
     ) { padding ->
@@ -41,10 +45,18 @@ fun DetalleReservaScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (reserva != null) {
+                EncabezadoSeccionTactico(
+                    titulo = "Credencial Temporal de Ingreso al Recinto",
+                    subtitulo = "Presente este pase digital en la guardia del recinto deportivo"
+                )
+
+                TarjetaCredencialTemporalRecinto(reserva = reserva)
+
                 OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -59,7 +71,7 @@ fun DetalleReservaScreen(
                     ) {
                         Text(
                             text = reserva.nombreCancha,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold
                         )
                         BadgeEstado(reserva.estado)
@@ -67,7 +79,11 @@ fun DetalleReservaScreen(
                         Text("• Solicitante: ${reserva.nombreSolicitante}", style = MaterialTheme.typography.bodyMedium)
                         Text("• Correo: ${reserva.correoUsuario}", style = MaterialTheme.typography.bodyMedium)
                         Text("• Estamento: ${reserva.tipoSolicitante}", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Día y Bloque: ${reserva.diaSemana} | ${reserva.bloqueHorario}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "• Día y Bloque: ${reserva.diaSemana} | ${reserva.bloqueHorario}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                         Text("• Actividad: ${reserva.motivoActividad}", style = MaterialTheme.typography.bodyMedium)
                         if (reserva.motivoRechazo.isNotBlank()) {
                             Text(

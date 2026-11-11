@@ -15,7 +15,8 @@ object DatosDemostracion {
             contrasena = "admin_2026",
             nombre = "Mayor (R) Jefe de Deportes EM",
             rol = "ADMIN",
-            tipoSolicitante = "Oficial"
+            tipoSolicitante = "Oficial Escuela Militar • Jefatura de Deportes EM",
+            estadoCuenta = "APROBADO"
         ),
         UsuarioModel(
             id = 2,
@@ -23,7 +24,8 @@ object DatosDemostracion {
             contrasena = "cadete_1234",
             nombre = "Cadete 3er Año Ignacio Rojas",
             rol = "USUARIO",
-            tipoSolicitante = "Cadete"
+            tipoSolicitante = "Cadete Escuela Militar • 1ra Compañía EM",
+            estadoCuenta = "APROBADO"
         ),
         UsuarioModel(
             id = 3,
@@ -31,7 +33,44 @@ object DatosDemostracion {
             contrasena = "profe_1234",
             nombre = "Prof. Carlos Valdivia (Rama Atletismo)",
             rol = "USUARIO",
-            tipoSolicitante = "Profesor"
+            tipoSolicitante = "Profesor / Instructor Militar • Rama Atletismo EM",
+            estadoCuenta = "APROBADO"
+        ),
+        UsuarioModel(
+            id = 4,
+            correo = "aspirante.soto@escuelamilitar.cl",
+            contrasena = "cadete_2026",
+            nombre = "Cadete 1er Año Benjamín Soto",
+            rol = "USUARIO",
+            tipoSolicitante = "Cadete Escuela Militar • 2da Compañía EM",
+            estadoCuenta = "PENDIENTE"
+        ),
+        UsuarioModel(
+            id = 5,
+            correo = "deportes.colegio@alcazar.cl",
+            contrasena = "colegio_2026",
+            nombre = "Coordinador Deportivo Colegio Alcázar",
+            rol = "USUARIO",
+            tipoSolicitante = "Colegio / Establecimiento Escolar • Colegio Alcázar de Las Condes",
+            estadoCuenta = "APROBADO"
+        ),
+        UsuarioModel(
+            id = 6,
+            correo = "convenio@beneficencia.cl",
+            contrasena = "social_2026",
+            nombre = "Directora Fundación Rehabilitación y Deporte",
+            rol = "USUARIO",
+            tipoSolicitante = "Fundación / Institución de Beneficencia • Fundación Señoras del Ejército",
+            estadoCuenta = "APROBADO"
+        ),
+        UsuarioModel(
+            id = 7,
+            correo = "torneos@fedachi.cl",
+            contrasena = "deporte_2026",
+            nombre = "Delegado Técnico Federación Atlética",
+            rol = "USUARIO",
+            tipoSolicitante = "Federación / Asociación Deportiva Nacional • FEDACHI",
+            estadoCuenta = "PENDIENTE"
         )
     )
 

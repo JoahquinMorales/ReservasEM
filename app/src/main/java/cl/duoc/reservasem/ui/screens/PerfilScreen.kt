@@ -19,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cl.duoc.reservasem.ui.components.EncabezadoSeccionTactico
 import cl.duoc.reservasem.ui.components.ImagenInteligente
 import cl.duoc.reservasem.ui.components.ScaffoldSecundario
+import cl.duoc.reservasem.ui.components.TarjetaCredencialTemporalRecinto
 import cl.duoc.reservasem.ui.theme.MilitaryGoldGalon
 import cl.duoc.reservasem.viewmodel.AppViewModel
 import cl.duoc.reservasem.viewmodel.CadeteViewModel
@@ -38,13 +40,15 @@ fun PerfilScreen(
     val fotoUri by appViewModel.fotoPerfilUri.collectAsState()
     val reservas by cadeteViewModel.todasLasReservas.collectAsState()
 
-    val misReservasCount = reservas.count {
+    val misReservas = reservas.filter {
         sesion.correo.isBlank() || it.correoUsuario.equals(sesion.correo, ignoreCase = true)
     }
+    val reservaConPaseActivo = misReservas.firstOrNull { it.estado == "APROBADA" }
+        ?: misReservas.firstOrNull { it.estado == "PENDIENTE" }
 
     ScaffoldSecundario(
         titulo = "Perfil Institucional y Credencial",
-        subtitulo = "Validación Biométrica / Fotográfica EM",
+        subtitulo = "Validación Biométrica / Credencial Temporal EM",
         onVolver = onVolver
     ) { padding ->
         Column(
@@ -106,7 +110,16 @@ fun PerfilScreen(
                 }
             }
 
-            // 2. Datos de la Cuenta Institucional Activa
+            // 2. Credencial Temporal de Ingreso a Recintos Deportivos
+            if (reservaConPaseActivo != null) {
+                EncabezadoSeccionTactico(
+                    titulo = "Credencial Temporal para Ingreso a Recintos",
+                    subtitulo = "Pase activo vinculado a su próxima reserva deportiva"
+                )
+                TarjetaCredencialTemporalRecinto(reserva = reservaConPaseActivo)
+            }
+
+            // 3. Datos de la Cuenta Institucional Activa
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
@@ -145,7 +158,7 @@ fun PerfilScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "Solicitudes de Reserva Registradas: $misReservasCount",
+                        text = "Solicitudes de Reserva Registradas: ${misReservas.size}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MilitaryGoldGalon
@@ -153,7 +166,7 @@ fun PerfilScreen(
                 }
             }
 
-            // 3. Accesos a Preferencias y Configuración de Modo Mantención (DataStore + Animaciones)
+            // 4. Accesos a Preferencias y Configuración de Modo Mantención (DataStore + Animaciones)
             OutlinedButton(
                 onClick = onIrAConfiguracion,
                 shape = RoundedCornerShape(8.dp),

@@ -15,5 +15,6 @@ data class UsuarioModel(
     val contrasena: String,
     val nombre: String,
     val rol: String,
-    val tipoSolicitante: String
+    val tipoSolicitante: String,
+    val estadoCuenta: String = "APROBADO" // APROBADO, PENDIENTE, RECHAZADO
 )

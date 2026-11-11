@@ -25,9 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cl.duoc.reservasem.model.ReservaModel
+import cl.duoc.reservasem.model.Validadores
 import cl.duoc.reservasem.navigation.Rutas
 import cl.duoc.reservasem.ui.components.AppScaffold
 import cl.duoc.reservasem.ui.components.BadgeEstado
+import cl.duoc.reservasem.ui.components.CampoTextoTactico
 import cl.duoc.reservasem.ui.components.EncabezadoSeccionTactico
 import cl.duoc.reservasem.ui.components.KpiCardTactica
 import cl.duoc.reservasem.ui.components.agendarEnGoogleCalendar
@@ -53,10 +55,14 @@ fun AdminScreen(
 
     var reservaARechazar by remember { mutableStateOf<ReservaModel?>(null) }
     var motivoRechazoTexto by remember { mutableStateOf("") }
+    var errorMotivoRechazo by remember { mutableStateOf<String?>(null) }
 
     if (reservaARechazar != null) {
         AlertDialog(
-            onDismissRequest = { reservaARechazar = null },
+            onDismissRequest = {
+                reservaARechazar = null
+                errorMotivoRechazo = null
+            },
             shape = RoundedCornerShape(10.dp),
             title = {
                 Text(
@@ -72,24 +78,34 @@ fun AdminScreen(
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold
                     )
-                    OutlinedTextField(
-                        value = motivoRechazoTexto,
-                        onValueChange = { motivoRechazoTexto = it },
-                        label = { Text("Motivo oficial del rechazo", style = MaterialTheme.typography.labelSmall) },
-                        placeholder = { Text("Ej. Instrucción militar prioritaria", style = MaterialTheme.typography.bodySmall) },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    CampoTextoTactico(
+                        valor = motivoRechazoTexto,
+                        onValorChange = { texto ->
+                            motivoRechazoTexto = texto
+                            errorMotivoRechazo = Validadores.validarMotivoRechazo(texto)
+                        },
+                        etiqueta = "Motivo oficial del rechazo (mín. 5 caracteres)",
+                        icono = Icons.Default.Gavel,
+                        errorMensaje = errorMotivoRechazo,
+                        textoAyudaValido = "Motivo oficial válido",
+                        singleLine = false
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        reservaARechazar?.let {
-                            adminViewModel.rechazarReserva(it, motivoRechazoTexto)
+                        val error = Validadores.validarMotivoRechazo(motivoRechazoTexto)
+                        if (error != null) {
+                            errorMotivoRechazo = error
+                        } else {
+                            reservaARechazar?.let {
+                                adminViewModel.rechazarReserva(it, motivoRechazoTexto)
+                            }
+                            motivoRechazoTexto = ""
+                            errorMotivoRechazo = null
+                            reservaARechazar = null
                         }
-                        motivoRechazoTexto = ""
-                        reservaARechazar = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BadgeRechazadaOxido),
                     shape = RoundedCornerShape(6.dp)
@@ -98,7 +114,12 @@ fun AdminScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { reservaARechazar = null }) {
+                TextButton(
+                    onClick = {
+                        reservaARechazar = null
+                        errorMotivoRechazo = null
+                    }
+                ) {
                     Text("Cancelar")
                 }
             }
@@ -168,6 +189,58 @@ fun AdminScreen(
                 }
             }
 
+            // Alerta destacada cuando hay nuevos usuarios pendientes de confirmación
+            if (resumen.usuariosPendientesAprobacion > 0) {
+                item {
+                    OutlinedCard(
+                        onClick = { onNavegar(Rutas.USUARIOS_ADMIN) },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.3.dp, BadgePendienteAmbar),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = BadgePendienteAmbar.copy(alpha = 0.14f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.HowToReg,
+                                    contentDescription = null,
+                                    tint = MilitaryGoldGalon
+                                )
+                                Column {
+                                    Text(
+                                        text = "CONFIRMAR NUEVOS USUARIOS (${resumen.usuariosPendientesAprobacion})",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MilitaryGoldGalon
+                                    )
+                                    Text(
+                                        text = "Existen cuentas institucionales esperando aprobación de mando",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MilitaryGoldGalon
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -187,7 +260,7 @@ fun AdminScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "MANTENCIÓN (14)",
+                            text = "MANTENCIÓN (${resumen.totalCanchas})",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1
@@ -200,7 +273,7 @@ fun AdminScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            Icons.Default.Group,
+                            Icons.Default.HowToReg,
                             contentDescription = null,
                             tint = MilitaryGoldGalon,
                             modifier = Modifier.size(16.dp)
@@ -230,6 +303,7 @@ fun AdminScreen(
                     onAprobar = { adminViewModel.aprobarReserva(reserva) },
                     onRechazar = {
                         motivoRechazoTexto = ""
+                        errorMotivoRechazo = null
                         reservaARechazar = reserva
                     },
                     onSincronizarCalendar = {

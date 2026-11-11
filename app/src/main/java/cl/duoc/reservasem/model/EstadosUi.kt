@@ -2,6 +2,7 @@ package cl.duoc.reservasem.model
 
 data class ErroresFormularioAuth(
     val nombreError: String? = null,
+    val entidadError: String? = null,
     val correoError: String? = null,
     val claveError: String? = null,
     val generalError: String? = null
@@ -11,13 +12,16 @@ data class LoginUiState(
     val correo: String = "",
     val clave: String = "",
     val nombreRegistro: String = "",
-    val tipoSolicitanteRegistro: String = "Cadete",
+    val grupoInstitucionId: String = "MILITAR_EM",
+    val tipoSolicitanteRegistro: String = "Cadete Escuela Militar",
+    val nombreEntidadInstitucion: String = "Escuela Militar del Libertador Bernardo O'Higgins",
     val rolSeleccionado: String = "USUARIO",
     val modoRegistro: Boolean = false,
     val cargando: Boolean = false,
     val loginExitoso: Boolean = false,
     val sugerirCrearCuenta: Boolean = false,
     val mostrarDialogoEvaluadorGoogle: Boolean = false,
+    val mensajeExito: String? = null,
     val errores: ErroresFormularioAuth = ErroresFormularioAuth()
 )
 
@@ -48,6 +52,60 @@ data class NuevaReservaUiState(
     val correoError: String? get() = errores.correoSolicitanteError
     val motivoError: String? get() = errores.motivoError
 }
+
+data class CrearEquipoErrores(
+    val nombreEquipoError: String? = null,
+    val companiaError: String? = null,
+    val capitanError: String? = null,
+    val disciplinaError: String? = null,
+    val integrantesError: String? = null
+)
+
+data class CrearEquipoUiState(
+    val nombreEquipo: String = "",
+    val compania: String = "1ra Compañía",
+    val capitan: String = "",
+    val disciplina: String = "Fútbol",
+    val integrantes: String = "11",
+    val errores: CrearEquipoErrores = CrearEquipoErrores(),
+    val guardadoExito: Boolean = false
+)
+
+data class ReprogramarReservaUiState(
+    val reservaId: Int = 0,
+    val nuevoDia: String = "Lunes",
+    val nuevoBloque: String = "08:00 - 09:30",
+    val nuevoMotivo: String = "",
+    val motivoError: String? = null,
+    val conflictoError: String? = null,
+    val guardadoExito: Boolean = false
+)
+
+data class CrearEventoErrores(
+    val tituloError: String? = null,
+    val disciplinaError: String? = null,
+    val recintoError: String? = null,
+    val fechaError: String? = null,
+    val organizadorError: String? = null
+)
+
+data class CrearEventoUiState(
+    val titulo: String = "",
+    val disciplina: String = "",
+    val recinto: String = "Estadio / Cancha de Fútbol y Atletismo",
+    val fecha: String = "Viernes 16:00 hrs",
+    val organizador: String = "Jefatura de Deportes EM",
+    val errores: CrearEventoErrores = CrearEventoErrores(),
+    val guardadoExito: Boolean = false
+)
+
+data class EditarCanchaUiState(
+    val canchaId: Int = 0,
+    val enMantencion: Boolean = false,
+    val motivoMantencion: String = "",
+    val motivoError: String? = null,
+    val guardadoExito: Boolean = false
+)
 
 data class SesionActivaUiState(
     val sesionIniciada: Boolean = false,

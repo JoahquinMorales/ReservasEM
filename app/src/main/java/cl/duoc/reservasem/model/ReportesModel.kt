@@ -9,6 +9,7 @@ data class ResumenOperativoModel(
     val reservasAprobadas: Int = 0,
     val reservasRechazadas: Int = 0,
     val totalUsuariosRegistrados: Int = 0,
+    val usuariosPendientesAprobacion: Int = 0,
     val totalEventosActivos: Int = 0
 )
 

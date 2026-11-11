@@ -8,10 +8,13 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.duoc.reservasem.DeportesApplication
 import cl.duoc.reservasem.model.CanchaModel
+import cl.duoc.reservasem.model.CrearEquipoErrores
+import cl.duoc.reservasem.model.CrearEquipoUiState
 import cl.duoc.reservasem.model.EquipoModel
 import cl.duoc.reservasem.model.EventoModel
 import cl.duoc.reservasem.model.NuevaReservaErrores
 import cl.duoc.reservasem.model.NuevaReservaUiState
+import cl.duoc.reservasem.model.ReprogramarReservaUiState
 import cl.duoc.reservasem.model.ReservaModel
 import cl.duoc.reservasem.model.Validadores
 import cl.duoc.reservasem.repository.DeportesRepository
@@ -50,6 +53,14 @@ class CadeteViewModel(
     private val _nuevaReservaState = MutableStateFlow(NuevaReservaUiState())
     val nuevaReservaState: StateFlow<NuevaReservaUiState> = _nuevaReservaState.asStateFlow()
 
+    // Estado centralizado para Crear Equipo (IE 2.2.1)
+    private val _crearEquipoState = MutableStateFlow(CrearEquipoUiState())
+    val crearEquipoState: StateFlow<CrearEquipoUiState> = _crearEquipoState.asStateFlow()
+
+    // Estado centralizado para Reprogramar Reserva (IE 2.2.1)
+    private val _reprogramarState = MutableStateFlow(ReprogramarReservaUiState())
+    val reprogramarState: StateFlow<ReprogramarReservaUiState> = _reprogramarState.asStateFlow()
+
     init {
         viewModelScope.launch {
             preferenciasRepository.sesionFlow.collect { sesion ->
@@ -59,6 +70,11 @@ class CadeteViewModel(
                             nombreSolicitante = actual.nombreSolicitante.ifBlank { sesion.nombre },
                             correoSolicitante = actual.correoSolicitante.ifBlank { sesion.correo },
                             tipoSolicitante = sesion.tipoSolicitante.ifBlank { "Cadete" }
+                        )
+                    }
+                    _crearEquipoState.update { actual ->
+                        actual.copy(
+                            capitan = actual.capitan.ifBlank { sesion.nombre }
                         )
                     }
                 }
@@ -86,7 +102,7 @@ class CadeteViewModel(
         }
     }
 
-    // Validación Reactiva en Tiempo Real para los OutlinedTextField (isError + supportingText)
+    // ================= FORMULARIO CENTRALIZADO: NUEVA RESERVA (IE 2.2.1) =================
     fun onNombreSolicitanteChange(nombre: String) {
         _nuevaReservaState.update { state ->
             state.copy(
@@ -166,7 +182,7 @@ class CadeteViewModel(
         return esValido
     }
 
-    fun confirmarYGuardarReserva(onExito: () -> Unit) {
+    fun confirmarYGuardarReserva(onExito: (ReservaModel) -> Unit) {
         if (!validarFormularioReserva()) return
 
         val actual = _nuevaReservaState.value
@@ -185,7 +201,8 @@ class CadeteViewModel(
             )
             val resultado = deportesRepository.crearReservaValidada(nueva)
             resultado.fold(
-                onSuccess = {
+                onSuccess = { idGenerado ->
+                    val reservaCreada = nueva.copy(id = idGenerado.toInt())
                     _nuevaReservaState.update { state ->
                         state.copy(
                             motivoActividad = "",
@@ -194,7 +211,7 @@ class CadeteViewModel(
                             errores = NuevaReservaErrores()
                         )
                     }
-                    onExito()
+                    onExito(reservaCreada)
                 },
                 onFailure = { error ->
                     _nuevaReservaState.update { state ->
@@ -208,22 +225,54 @@ class CadeteViewModel(
         }
     }
 
-    fun reprogramarReserva(
-        reservaId: Int,
-        nuevoDia: String,
-        nuevoBloque: String,
-        nuevoMotivo: String,
-        onExito: () -> Unit
-    ) {
+    // ================= FORMULARIO CENTRALIZADO: REPROGRAMAR RESERVA (IE 2.2.1) =================
+    fun inicializarReprogramacion(reserva: ReservaModel) {
+        _reprogramarState.value = ReprogramarReservaUiState(
+            reservaId = reserva.id,
+            nuevoDia = reserva.diaSemana,
+            nuevoBloque = reserva.bloqueHorario,
+            nuevoMotivo = reserva.motivoActividad,
+            motivoError = null,
+            conflictoError = null,
+            guardadoExito = false
+        )
+    }
+
+    fun onReprogramarDiaChange(dia: String) {
+        _reprogramarState.update { it.copy(nuevoDia = dia, conflictoError = null) }
+    }
+
+    fun onReprogramarBloqueChange(bloque: String) {
+        _reprogramarState.update { it.copy(nuevoBloque = bloque, conflictoError = null) }
+    }
+
+    fun onReprogramarMotivoChange(motivo: String) {
+        _reprogramarState.update {
+            it.copy(
+                nuevoMotivo = motivo,
+                motivoError = Validadores.validarMotivo(motivo)
+            )
+        }
+    }
+
+    fun validarYGuardarReprogramacion(onExito: () -> Unit) {
+        val actual = _reprogramarState.value
+        val errorMotivo = Validadores.validarMotivo(actual.nuevoMotivo)
+        if (errorMotivo != null) {
+            _reprogramarState.update { it.copy(motivoError = errorMotivo) }
+            return
+        }
+
         viewModelScope.launch {
-            val original = deportesRepository.obtenerReservaPorId(reservaId) ?: return@launch
+            val original = deportesRepository.obtenerReservaPorId(actual.reservaId) ?: return@launch
             val actualizada = original.copy(
-                diaSemana = nuevoDia,
-                bloqueHorario = nuevoBloque,
-                motivoActividad = nuevoMotivo.ifBlank { original.motivoActividad },
+                diaSemana = actual.nuevoDia,
+                bloqueHorario = actual.nuevoBloque,
+                motivoActividad = actual.nuevoMotivo.trim(),
                 estado = "PENDIENTE"
             )
             deportesRepository.actualizarReserva(actualizada)
+            _reprogramarState.update { it.copy(guardadoExito = true) }
             onExito()
         }
     }
@@ -234,23 +283,87 @@ class CadeteViewModel(
         }
     }
 
-    fun registrarEquipo(
-        nombreEquipo: String,
-        compania: String,
-        capitan: String,
-        disciplina: String,
-        integrantes: Int
-    ) {
+    // ================= FORMULARIO CENTRALIZADO: CREAR EQUIPO / ESCUADRA (IE 2.2.1) =================
+    fun onNombreEquipoChange(nombre: String) {
+        _crearEquipoState.update { state ->
+            state.copy(
+                nombreEquipo = nombre,
+                errores = state.errores.copy(nombreEquipoError = Validadores.validarNombreEquipo(nombre))
+            )
+        }
+    }
+
+    fun onCompaniaEquipoChange(compania: String) {
+        _crearEquipoState.update { state ->
+            state.copy(
+                compania = compania,
+                errores = state.errores.copy(companiaError = Validadores.validarCompania(compania))
+            )
+        }
+    }
+
+    fun onCapitanEquipoChange(capitan: String) {
+        _crearEquipoState.update { state ->
+            state.copy(
+                capitan = capitan,
+                errores = state.errores.copy(capitanError = Validadores.validarNombre(capitan))
+            )
+        }
+    }
+
+    fun onDisciplinaEquipoChange(disciplina: String) {
+        _crearEquipoState.update { state ->
+            state.copy(
+                disciplina = disciplina,
+                errores = state.errores.copy(disciplinaError = Validadores.validarDisciplina(disciplina))
+            )
+        }
+    }
+
+    fun onIntegrantesEquipoChange(integrantes: String) {
+        val soloDigitos = integrantes.filter { it.isDigit() }
+        _crearEquipoState.update { state ->
+            state.copy(
+                integrantes = soloDigitos,
+                errores = state.errores.copy(integrantesError = Validadores.validarIntegrantes(soloDigitos))
+            )
+        }
+    }
+
+    fun validarYRegistrarEquipo(onExito: () -> Unit) {
+        val actual = _crearEquipoState.value
+        val nuevosErrores = CrearEquipoErrores(
+            nombreEquipoError = Validadores.validarNombreEquipo(actual.nombreEquipo),
+            companiaError = Validadores.validarCompania(actual.compania),
+            capitanError = Validadores.validarNombre(actual.capitan),
+            disciplinaError = Validadores.validarDisciplina(actual.disciplina),
+            integrantesError = Validadores.validarIntegrantes(actual.integrantes)
+        )
+        val esValido = listOfNotNull(
+            nuevosErrores.nombreEquipoError,
+            nuevosErrores.companiaError,
+            nuevosErrores.capitanError,
+            nuevosErrores.disciplinaError,
+            nuevosErrores.integrantesError
+        ).isEmpty()
+
+        if (!esValido) {
+            _crearEquipoState.update { it.copy(errores = nuevosErrores) }
+            return
+        }
+
         viewModelScope.launch {
             deportesRepository.crearEquipo(
                 EquipoModel(
-                    nombreEquipo = nombreEquipo,
-                    compania = compania,
-                    capitan = capitan,
-                    disciplina = disciplina,
-                    integrantes = integrantes
+                    nombreEquipo = actual.nombreEquipo.trim(),
+                    compania = actual.compania.trim(),
+                    capitan = actual.capitan.trim(),
+                    disciplina = actual.disciplina.trim(),
+                    integrantes = actual.integrantes.toIntOrNull() ?: 11
                 )
             )
+            _crearEquipoState.value = CrearEquipoUiState()
+            onExito()
         }
     }
 

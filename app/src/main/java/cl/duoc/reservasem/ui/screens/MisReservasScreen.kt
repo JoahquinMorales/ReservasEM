@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,9 +28,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cl.duoc.reservasem.model.ReservaModel
 import cl.duoc.reservasem.ui.components.BadgeEstado
+import cl.duoc.reservasem.ui.components.DialogoCredencialTemporal
 import cl.duoc.reservasem.ui.components.ScaffoldSecundario
 import cl.duoc.reservasem.ui.components.agendarEnGoogleCalendar
+import cl.duoc.reservasem.ui.theme.BadgeAprobadaCamuflaje
 import cl.duoc.reservasem.ui.theme.BadgeRechazadaOxido
 import cl.duoc.reservasem.ui.theme.MilitaryGoldGalon
 import cl.duoc.reservasem.ui.theme.VibrantMilitaryGreen
@@ -44,14 +48,22 @@ fun MisReservasScreen(
 ) {
     val reservas by viewModel.todasLasReservas.collectAsState()
     var filtroEstado by remember { mutableStateOf("TODAS") }
+    var reservaConCredencialModal by remember { mutableStateOf<ReservaModel?>(null) }
     val context = LocalContext.current
 
     val reservasFiltradas = reservas.filter {
         filtroEstado == "TODAS" || it.estado == filtroEstado
     }
 
+    reservaConCredencialModal?.let { reservaSeleccionada ->
+        DialogoCredencialTemporal(
+            reserva = reservaSeleccionada,
+            onDismiss = { reservaConCredencialModal = null }
+        )
+    }
+
     ScaffoldSecundario(
-        titulo = "Mis Reservas y Programación",
+        titulo = "Mis Reservas y Credenciales",
         subtitulo = "${reservasFiltradas.size} solicitudes registradas",
         onVolver = onVolver
     ) { padding ->
@@ -212,6 +224,41 @@ fun MisReservasScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
+                            // Botón de Credencial Temporal para Ingresar al Recinto
+                            if (reserva.estado != "RECHAZADA") {
+                                Button(
+                                    onClick = { reservaConCredencialModal = reserva },
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = BorderStroke(1.dp, MilitaryGoldGalon),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (reserva.estado == "APROBADA") BadgeAprobadaCamuflaje
+                                        else MaterialTheme.colorScheme.primaryContainer
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCode2,
+                                        contentDescription = null,
+                                        tint = MilitaryGoldGalon,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (reserva.estado == "APROBADA") {
+                                            "VER CREDENCIAL TEMPORAL DE INGRESO AL RECINTO"
+                                        } else {
+                                            "VER PASE PROVISORIO DE RECINTO (PENDIENTE V°B°)"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                            }
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,
@@ -238,7 +285,7 @@ fun MisReservasScreen(
                                     )
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Text(
-                                        text = "Agendar en Google Calendar",
+                                        text = "Google Calendar",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.ExtraBold
                                     )

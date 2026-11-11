@@ -18,7 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.duoc.reservasem.model.Horarios
+import cl.duoc.reservasem.ui.components.BannerEstadoValidacion
+import cl.duoc.reservasem.ui.components.CampoTextoTactico
 import cl.duoc.reservasem.ui.components.ScaffoldSecundario
+import cl.duoc.reservasem.ui.components.SelectorTactico
 import cl.duoc.reservasem.ui.theme.MilitaryGoldGalon
 import cl.duoc.reservasem.viewmodel.CadeteViewModel
 
@@ -33,11 +36,14 @@ fun NuevaReservaScreen(
     val canchas by viewModel.canchas.collectAsState()
 
     var menuCanchasExpandido by remember { mutableStateOf(false) }
-    var menuPerfilesExpandido by remember { mutableStateOf(false) }
-    var menuDiasExpandido by remember { mutableStateOf(false) }
-    var menuBloquesExpandido by remember { mutableStateOf(false) }
 
     val canchasOperativas = canchas.filter { !it.enMantencion }
+    val listaErrores = listOf(
+        state.errores.nombreSolicitanteError,
+        state.errores.correoSolicitanteError,
+        state.errores.motivoError,
+        state.errores.conflictoHorarioError
+    )
 
     ScaffoldSecundario(
         titulo = "Formulario de Solicitud de Reserva",
@@ -73,7 +79,6 @@ fun NuevaReservaScreen(
                         color = MilitaryGoldGalon
                     )
 
-                    // Selector de Recinto Operativo
                     ExposedDropdownMenuBox(
                         expanded = menuCanchasExpandido,
                         onExpandedChange = { menuCanchasExpandido = !menuCanchasExpandido }
@@ -89,6 +94,10 @@ fun NuevaReservaScreen(
                             textStyle = MaterialTheme.typography.bodyMedium,
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MilitaryGoldGalon,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+                            ),
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth()
@@ -112,93 +121,30 @@ fun NuevaReservaScreen(
                         }
                     }
 
-                    // Día Hábil y Bloque Horario (90 min)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ExposedDropdownMenuBox(
-                            expanded = menuDiasExpandido,
-                            onExpandedChange = { menuDiasExpandido = !menuDiasExpandido },
+                        SelectorTactico(
+                            opciones = Horarios.diasHabiles,
+                            seleccionActual = state.diaSemana,
+                            onSeleccionChange = viewModel::onDiaSemanaChange,
+                            etiqueta = "Día (Lun-Vie)",
                             modifier = Modifier.weight(1f)
-                        ) {
-                            OutlinedTextField(
-                                value = state.diaSemana,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Día (Lun-Vie)", style = MaterialTheme.typography.bodySmall) },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuDiasExpandido)
-                                },
-                                textStyle = MaterialTheme.typography.bodyMedium,
-                                shape = RoundedCornerShape(8.dp),
-                                singleLine = true,
-                                modifier = Modifier
-                                    .menuAnchor()
-                                    .fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = menuDiasExpandido,
-                                onDismissRequest = { menuDiasExpandido = false },
-                                modifier = Modifier
-                                    .exposedDropdownSize()
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                Horarios.diasHabiles.forEach { dia ->
-                                    DropdownMenuItem(
-                                        text = { Text(dia, style = MaterialTheme.typography.bodySmall) },
-                                        onClick = {
-                                            viewModel.onDiaSemanaChange(dia)
-                                            menuDiasExpandido = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        )
 
-                        ExposedDropdownMenuBox(
-                            expanded = menuBloquesExpandido,
-                            onExpandedChange = { menuBloquesExpandido = !menuBloquesExpandido },
+                        SelectorTactico(
+                            opciones = Horarios.bloquesOficiales,
+                            seleccionActual = state.bloqueHorario,
+                            onSeleccionChange = viewModel::onBloqueHorarioChange,
+                            etiqueta = "Bloque (90m)",
                             modifier = Modifier.weight(1.2f)
-                        ) {
-                            OutlinedTextField(
-                                value = state.bloqueHorario,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Bloque (90m)", style = MaterialTheme.typography.bodySmall) },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuBloquesExpandido)
-                                },
-                                textStyle = MaterialTheme.typography.bodyMedium,
-                                shape = RoundedCornerShape(8.dp),
-                                singleLine = true,
-                                modifier = Modifier
-                                    .menuAnchor()
-                                    .fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = menuBloquesExpandido,
-                                onDismissRequest = { menuBloquesExpandido = false },
-                                modifier = Modifier
-                                    .exposedDropdownSize()
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                Horarios.bloquesOficiales.forEach { bloque ->
-                                    DropdownMenuItem(
-                                        text = { Text(bloque, style = MaterialTheme.typography.bodySmall) },
-                                        onClick = {
-                                            viewModel.onBloqueHorarioChange(bloque)
-                                            menuBloquesExpandido = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        )
                     }
                 }
             }
 
-            // 2. Formulario Validado Reactivamente con isError y supportingText (Rúbrica Duoc UC)
+            // 2. Formulario Validado Reactivamente de forma centralizada (IE 2.2.1)
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -211,124 +157,110 @@ fun NuevaReservaScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "2. IDENTIFICACIÓN Y VALIDACIÓN REACTIVA",
+                        text = "2. IDENTIFICACIÓN, INSTITUCIÓN Y VALIDACIÓN REACTIVA (IE 2.2.1)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MilitaryGoldGalon
                     )
 
-                    // Selector compacto de los 9 perfiles oficiales
-                    ExposedDropdownMenuBox(
-                        expanded = menuPerfilesExpandido,
-                        onExpandedChange = { menuPerfilesExpandido = !menuPerfilesExpandido }
+                    val grupoSeleccionadoReserva = remember(state.tipoSolicitante) {
+                        Horarios.detectarGrupoDeTipo(state.tipoSolicitante)
+                    }
+
+                    Text(
+                        text = "Tipo de Institución / Sector Solicitante:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MilitaryGoldGalon
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        OutlinedTextField(
-                            value = state.tipoSolicitante,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Estamento / Tipo de Solicitante", style = MaterialTheme.typography.bodySmall) },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuPerfilesExpandido)
-                            },
-                            textStyle = MaterialTheme.typography.bodyMedium,
-                            shape = RoundedCornerShape(8.dp),
-                            singleLine = true,
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = menuPerfilesExpandido,
-                            onDismissRequest = { menuPerfilesExpandido = false },
-                            modifier = Modifier
-                                .exposedDropdownSize()
-                                .background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            Horarios.tiposSolicitanteOficiales.forEach { perfil ->
-                                DropdownMenuItem(
-                                    text = { Text(perfil, style = MaterialTheme.typography.bodySmall) },
-                                    onClick = {
-                                        viewModel.onTipoSolicitanteChange(perfil)
-                                        menuPerfilesExpandido = false
-                                    }
-                                )
-                            }
+                        Horarios.gruposInstitucionSolicitante.take(2).forEach { grupo ->
+                            val activo = grupoSeleccionadoReserva.idGrupo == grupo.idGrupo
+                            FilterChip(
+                                selected = activo,
+                                onClick = { viewModel.onTipoSolicitanteChange(grupo.tipos.first()) },
+                                label = {
+                                    Text(
+                                        text = if (grupo.idGrupo == "MILITAR_EM") "Escuela Militar" else "Colegio / Univ.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
 
-                    // Campo 1 Validado en Tiempo Real con isError + supportingText
-                    OutlinedTextField(
-                        value = state.nombreSolicitante,
-                        onValueChange = viewModel::onNombreSolicitanteChange,
-                        label = { Text("Grado y Nombre del Solicitante") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Badge, contentDescription = null, tint = MilitaryGoldGalon)
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        isError = state.errores.nombreSolicitanteError != null,
-                        supportingText = {
-                            state.errores.nombreSolicitanteError?.let { msg ->
-                                Text(
-                                    text = msg,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Horarios.gruposInstitucionSolicitante.drop(2).forEach { grupo ->
+                            val activo = grupoSeleccionadoReserva.idGrupo == grupo.idGrupo
+                            FilterChip(
+                                selected = activo,
+                                onClick = { viewModel.onTipoSolicitanteChange(grupo.tipos.first()) },
+                                label = {
+                                    Text(
+                                        text = if (grupo.idGrupo == "BENEFICENCIA_FUNDACION") "Beneficencia" else "Federación / Club",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    SelectorTactico(
+                        opciones = grupoSeleccionadoReserva.tipos,
+                        seleccionActual = state.tipoSolicitante,
+                        onSeleccionChange = viewModel::onTipoSolicitanteChange,
+                        etiqueta = "Subtipo en ${grupoSeleccionadoReserva.tituloGrupo}"
                     )
 
-                    // Campo 2 Validado en Tiempo Real con isError + supportingText
-                    OutlinedTextField(
-                        value = state.correoSolicitante,
-                        onValueChange = viewModel::onCorreoSolicitanteChange,
-                        label = { Text("Correo Electrónico Institucional") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = MilitaryGoldGalon)
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        isError = state.errores.correoSolicitanteError != null,
-                        supportingText = {
-                            state.errores.correoSolicitanteError?.let { msg ->
-                                Text(
-                                    text = msg,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    CampoTextoTactico(
+                        valor = state.nombreSolicitante,
+                        onValorChange = viewModel::onNombreSolicitanteChange,
+                        etiqueta = "Grado y Nombre del Solicitante",
+                        icono = Icons.Default.Badge,
+                        errorMensaje = state.errores.nombreSolicitanteError,
+                        textoAyudaValido = "Identificación del solicitante verificada"
                     )
 
-                    // Campo 3 Validado en Tiempo Real con isError + supportingText
-                    OutlinedTextField(
-                        value = state.motivoActividad,
-                        onValueChange = viewModel::onMotivoChange,
-                        label = { Text("Motivo o Actividad Deportiva (ej. Entrenamiento Rama)") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Description, contentDescription = null, tint = MilitaryGoldGalon)
-                        },
-                        singleLine = false,
-                        shape = RoundedCornerShape(8.dp),
-                        isError = state.errores.motivoError != null,
-                        supportingText = {
-                            state.errores.motivoError?.let { msg ->
-                                Text(
-                                    text = msg,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    CampoTextoTactico(
+                        valor = state.correoSolicitante,
+                        onValorChange = viewModel::onCorreoSolicitanteChange,
+                        etiqueta = "Correo Electrónico Institucional",
+                        icono = Icons.Default.Email,
+                        errorMensaje = state.errores.correoSolicitanteError,
+                        textoAyudaValido = "Correo institucional válido"
+                    )
+
+                    CampoTextoTactico(
+                        valor = state.motivoActividad,
+                        onValorChange = viewModel::onMotivoChange,
+                        etiqueta = "Motivo o Actividad Deportiva (ej. Entrenamiento Rama)",
+                        icono = Icons.Default.Description,
+                        errorMensaje = state.errores.motivoError,
+                        textoAyudaValido = "Justificación deportiva registrada",
+                        singleLine = false
+                    )
+
+                    BannerEstadoValidacion(
+                        erroresActivos = listaErrores,
+                        mensajeListo = "Campos validados para emisión de solicitud y credencial temporal"
                     )
 
                     AnimatedVisibility(visible = state.errores.conflictoHorarioError != null) {

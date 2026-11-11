@@ -81,6 +81,10 @@ class DeportesRepository(private val appDao: AppDao) {
         return nuevoUsuario.copy(id = id.toInt())
     }
 
+    suspend fun actualizarUsuario(usuario: UsuarioModel) {
+        appDao.actualizarUsuario(usuario)
+    }
+
     suspend fun eliminarUsuario(idUsuario: Int) {
         appDao.eliminarUsuarioPorId(idUsuario)
     }

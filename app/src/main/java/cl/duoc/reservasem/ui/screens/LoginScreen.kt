@@ -25,7 +25,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cl.duoc.reservasem.model.Horarios
 import cl.duoc.reservasem.ui.components.CampoTextoTactico
+import cl.duoc.reservasem.ui.components.SelectorTactico
+import cl.duoc.reservasem.ui.theme.BadgeAprobadaCamuflaje
 import cl.duoc.reservasem.ui.theme.MilitaryGoldGalon
+import cl.duoc.reservasem.ui.theme.VibrantMilitaryGreen
 import cl.duoc.reservasem.ui.theme.tacticalCommandBackgroundBrush
 import cl.duoc.reservasem.viewmodel.LoginViewModel
 
@@ -39,7 +42,10 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var menuPerfilesExpandido by remember { mutableStateOf(false) }
+
+    val grupoActual = remember(uiState.grupoInstitucionId) {
+        Horarios.obtenerGrupoPorId(uiState.grupoInstitucionId)
+    }
 
     LaunchedEffect(uiState.loginExitoso) {
         if (uiState.loginExitoso) {
@@ -128,6 +134,7 @@ fun LoginScreen(
             ) {
                 val cardShape = RoundedCornerShape(10.dp)
 
+                // 1. Selección de Perfil de Acceso
                 OutlinedCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,7 +157,7 @@ fun LoginScreen(
                             fontWeight = FontWeight.ExtraBold,
                             color = MilitaryGoldGalon
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -160,7 +167,7 @@ fun LoginScreen(
                                 onClick = { viewModel.seleccionarRol("USUARIO") },
                                 label = {
                                     Text(
-                                        text = "Cadete / Solicitante",
+                                        text = "Cadete / Institución",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
@@ -177,7 +184,7 @@ fun LoginScreen(
                                 onClick = { viewModel.seleccionarRol("ADMIN") },
                                 label = {
                                     Text(
-                                        text = "Administrador",
+                                        text = "Oficial Admin",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
@@ -209,9 +216,9 @@ fun LoginScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = if (uiState.rolSeleccionado == "ADMIN") {
-                                            "Demo Admin: admin@escuelamilitar.cl (clave: admin_2026)" // <-- Modificado
+                                            "Demo Admin: admin@escuelamilitar.cl (clave: admin_2026)"
                                         } else {
-                                            "Demo Cadete: cadete@escuelamilitar.cl (clave: cadete_1234)" // <-- Modificado
+                                            "Demo Cadete: cadete@escuelamilitar.cl (clave: cadete_1234)"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
@@ -240,6 +247,171 @@ fun LoginScreen(
                     }
                 }
 
+                // 2. NUEVO APARTADO: Clasificación por Tipo de Institución (Militar, Colegio, Beneficencia, Federación)
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = cardShape,
+                            ambientColor = MilitaryGoldGalon.copy(alpha = 0.25f)
+                        )
+                        .animateContentSize(),
+                    shape = cardShape,
+                    border = BorderStroke(1.1.dp, MilitaryGoldGalon.copy(alpha = 0.75f)),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "2. TIPO DE INSTITUCIÓN / CONVENIO SOLICITANTE",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MilitaryGoldGalon
+                        )
+                        Text(
+                            text = "Seleccione el sector institucional al que pertenece para ingresar o crear cuenta:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Fila 1 de Sectores: Escuela Militar + Colegios / Educación
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = uiState.grupoInstitucionId == "MILITAR_EM",
+                                onClick = {
+                                    if (!uiState.modoRegistro) {
+                                        viewModel.autocompletarDemoPorSector("MILITAR_EM")
+                                    } else {
+                                        viewModel.onGrupoInstitucionChange("MILITAR_EM")
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "Escuela Militar",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(15.dp))
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            FilterChip(
+                                selected = uiState.grupoInstitucionId == "COLEGIO_EDUCACION",
+                                onClick = {
+                                    if (!uiState.modoRegistro) {
+                                        viewModel.autocompletarDemoPorSector("COLEGIO_EDUCACION")
+                                    } else {
+                                        viewModel.onGrupoInstitucionChange("COLEGIO_EDUCACION")
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "Colegio / Univ.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(15.dp))
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Fila 2 de Sectores: Beneficencia / Fundación + Federaciones / Clubes
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = uiState.grupoInstitucionId == "BENEFICENCIA_FUNDACION",
+                                onClick = {
+                                    if (!uiState.modoRegistro) {
+                                        viewModel.autocompletarDemoPorSector("BENEFICENCIA_FUNDACION")
+                                    } else {
+                                        viewModel.onGrupoInstitucionChange("BENEFICENCIA_FUNDACION")
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "Beneficencia",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(15.dp))
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            FilterChip(
+                                selected = uiState.grupoInstitucionId == "FEDERACION_EXTERNA",
+                                onClick = {
+                                    if (!uiState.modoRegistro) {
+                                        viewModel.autocompletarDemoPorSector("FEDERACION_EXTERNA")
+                                    } else {
+                                        viewModel.onGrupoInstitucionChange("FEDERACION_EXTERNA")
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "Federación / Club",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(15.dp))
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Ficha descriptiva del sector seleccionado
+                        Surface(
+                            color = MilitaryGoldGalon.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(0.8.dp, MilitaryGoldGalon.copy(alpha = 0.55f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                                Text(
+                                    text = "Sector activo: ${grupoActual.tituloGrupo}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MilitaryGoldGalon
+                                )
+                                Text(
+                                    text = grupoActual.descripcion,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 3. Selector Iniciar Sesión vs Crear Cuenta
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -261,7 +433,7 @@ fun LoginScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "INICIAR SESION",
+                            text = "INICIAR SESIÓN",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -290,6 +462,7 @@ fun LoginScreen(
                     }
                 }
 
+                // 4. Formulario de Ingreso / Registro con separación de tipos de institución
                 OutlinedCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -316,9 +489,9 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = if (uiState.modoRegistro) {
-                                "REGISTRO DE NUEVA CUENTA INSTITUCIONAL"
+                                "3. REGISTRO DE CUENTA • ${grupoActual.tituloGrupo.uppercase()}"
                             } else {
-                                "INGRESO CON CREDENCIALES (${if (uiState.rolSeleccionado == "ADMIN") "OFICIAL ADMIN" else "SOLICITANTE"})"
+                                "3. INGRESO CON CREDENCIALES (${if (uiState.rolSeleccionado == "ADMIN") "OFICIAL ADMIN" else grupoActual.tituloGrupo.uppercase()})"
                             },
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
@@ -327,77 +500,83 @@ fun LoginScreen(
 
                         AnimatedVisibility(visible = uiState.modoRegistro) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                SelectorTactico(
+                                    opciones = grupoActual.tipos,
+                                    seleccionActual = uiState.tipoSolicitanteRegistro,
+                                    onSeleccionChange = viewModel::onTipoSolicitanteChange,
+                                    etiqueta = "Subtipo de Solicitante (${grupoActual.tituloGrupo})"
+                                )
+
+                                CampoTextoTactico(
+                                    valor = uiState.nombreEntidadInstitucion,
+                                    onValorChange = viewModel::onNombreEntidadChange,
+                                    etiqueta = when (uiState.grupoInstitucionId) {
+                                        "COLEGIO_EDUCACION" -> "Nombre del Colegio, Liceo o Universidad"
+                                        "BENEFICENCIA_FUNDACION" -> "Nombre de la Fundación o Institución de Beneficencia"
+                                        "FEDERACION_EXTERNA" -> "Nombre de la Federación, Club o Municipalidad"
+                                        else -> "Compañía, Unidad o Rama de la Escuela Militar"
+                                    },
+                                    icono = Icons.Default.AccountBalance,
+                                    errorMensaje = uiState.errores.entidadError,
+                                    textoAyudaValido = "Entidad / Institución registrada correctamente"
+                                )
+
                                 CampoTextoTactico(
                                     valor = uiState.nombreRegistro,
                                     onValorChange = viewModel::onNombreRegistroChange,
-                                    etiqueta = "Grado y Nombre completo o Entidad",
+                                    etiqueta = "Grado y Nombre del Responsable / Solicitante",
                                     icono = Icons.Default.Badge,
-                                    errorMensaje = uiState.errores.nombreError
+                                    errorMensaje = uiState.errores.nombreError,
+                                    textoAyudaValido = "Responsable verificado"
                                 )
-
-                                ExposedDropdownMenuBox(
-                                    expanded = menuPerfilesExpandido,
-                                    onExpandedChange = { menuPerfilesExpandido = !menuPerfilesExpandido }
-                                ) {
-                                    OutlinedTextField(
-                                        value = uiState.tipoSolicitanteRegistro,
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        label = {
-                                            Text(
-                                                "Categoria de Solicitante (Estamento EM)",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        },
-                                        trailingIcon = {
-                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuPerfilesExpandido)
-                                        },
-                                        textStyle = MaterialTheme.typography.bodyMedium,
-                                        shape = RoundedCornerShape(8.dp),
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = MilitaryGoldGalon,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
-                                        ),
-                                        modifier = Modifier
-                                            .menuAnchor()
-                                            .fillMaxWidth()
-                                    )
-                                    ExposedDropdownMenu(
-                                        expanded = menuPerfilesExpandido,
-                                        onDismissRequest = { menuPerfilesExpandido = false }
-                                    ) {
-                                        Horarios.tiposSolicitanteOficiales.forEach { tipo ->
-                                            DropdownMenuItem(
-                                                text = { Text(tipo, style = MaterialTheme.typography.bodySmall) },
-                                                onClick = {
-                                                    viewModel.onTipoSolicitanteChange(tipo)
-                                                    menuPerfilesExpandido = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
 
                         CampoTextoTactico(
                             valor = uiState.correo,
                             onValorChange = viewModel::onCorreoChange,
-                            etiqueta = "Correo electronico institucional",
+                            etiqueta = "Correo electrónico institucional o de convenio",
                             icono = Icons.Default.Email,
-                            errorMensaje = uiState.errores.correoError
+                            errorMensaje = uiState.errores.correoError,
+                            textoAyudaValido = "Formato de correo institucional válido"
                         )
 
                         CampoTextoTactico(
                             valor = uiState.clave,
                             onValorChange = viewModel::onClaveChange,
-                            etiqueta = "Contrasena (min. 5 caracteres)", // <-- Modificado
+                            etiqueta = "Contraseña (mín. 5 caracteres + número o símbolo)",
                             icono = Icons.Default.Lock,
                             errorMensaje = uiState.errores.claveError,
+                            textoAyudaValido = "Contraseña cumple requisitos de seguridad",
                             visualTransformation = PasswordVisualTransformation()
                         )
+
+                        AnimatedVisibility(visible = uiState.mensajeExito != null) {
+                            Surface(
+                                color = BadgeAprobadaCamuflaje.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, VibrantMilitaryGreen),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = VibrantMilitaryGreen
+                                    )
+                                    Text(
+                                        text = uiState.mensajeExito ?: "",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
 
                         AnimatedVisibility(visible = uiState.errores.generalError != null) {
                             Surface(
@@ -422,7 +601,7 @@ fun LoginScreen(
                                             Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                text = "Crear cuenta nueva con este correo",
+                                                text = "Crear cuenta nueva en este sector institucional",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.ExtraBold
                                             )
@@ -454,7 +633,7 @@ fun LoginScreen(
                                 )
                             } else {
                                 Text(
-                                    text = if (uiState.modoRegistro) "REGISTRAR Y ACCEDER" else "INGRESAR AL SISTEMA",
+                                    text = if (uiState.modoRegistro) "REGISTRAR CUENTA EN SECTOR" else "INGRESAR AL SISTEMA",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.ExtraBold
                                 )
